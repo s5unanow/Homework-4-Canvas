@@ -1,3 +1,5 @@
+"use strict";
+
 class Engine {
   static updateState(actors, width, height) {
     Engine.checkAndUpdateIfElementsCollide(actors);
@@ -65,7 +67,7 @@ class Engine {
       actor.pos.y += actor.velocity.y;
     });
   }
-  static isSafeToAdd(actors) {
+  static isStartingAreaClear(actors) {
     return actors.every(actor => actor.pos.x > SCALE && actor.pos.y > SCALE)
   }
 }

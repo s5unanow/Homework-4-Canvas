@@ -48,7 +48,7 @@ class Vec {
     return new Vec(this.x * multiplier, this.y * multiplier);
   }
   static randomVec(defaultValue = SPEED) {
-    let x = randMultiplier(MAX_VELOCITY_DEVIATION);
+    let x = 2 * randMultiplier(MAX_VELOCITY_DEVIATION);
     let y =  Math.sqrt(defaultValue - x ** 2);
     return new Vec(x, y);
   }
@@ -149,7 +149,7 @@ class Actors {
   }
   runAutoAddFlow() {
     if (this.actors.length < this.maxSize) {
-      if(Engine.isSafeToAdd(this.actors)) {
+      if(Engine.isStartingAreaClear(this.actors)) {
 
         if (this.counter[ACTOR_TYPES.CIRCLE] < this.maxNumOfCircles && this.counter[ACTOR_TYPES.SQUARE] < this.maxNumOfSquares) {
           this.addRandomActor();
