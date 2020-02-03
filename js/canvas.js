@@ -4,10 +4,14 @@ const ACTOR_TYPES = {
   CIRCLE: "circle",
   SQUARE: "square"
 };
-const SCALE = 36;
-const MAX_SIZE_DEVIATION = 0.3;
-const MAX_VELOCITY_DEVIATION = 0.6;
-const SPEED = 3;
+const SCALE = 40;
+const MAX_SIZE_DEVIATION = 0.2;
+const MAX_VELOCITY_DEVIATION = 0.3;
+const SPEED = 8;
+const MAX_NUM_OF_CIRCLES = 20;
+const MAX_NUM_OF_SQUARES = 20;
+const GENERATING_DELAY = 1000; // in ms
+
 
 
 function halfChance() {
@@ -44,9 +48,11 @@ class Vec {
   multiply(multiplier) {
     return new Vec(this.x * multiplier, this.y * multiplier);
   }
-  static randomVec(defaultValue = 1) {
-    let x = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
-    let y = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
+  static randomVec(defaultValue = SPEED) {
+    // let x = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
+    // let y = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
+    let x = randMultiplier(MAX_VELOCITY_DEVIATION);
+    let y =  Math.sqrt(defaultValue - x ** 2);
     return new Vec(x, y);
   }
 }
@@ -81,7 +87,7 @@ class Square extends Figure{
     this.center;
     this.radiusInner = this.side / 2;
     this.radiusOuter = Math.sqrt(this.radiusInner ** 2 + this.radiusInner ** 2);
-    this.radius = this.radiusInner + this.radiusOuter;
+    this.radius = (this.radiusInner + this.radiusOuter) / 2;
   }
   get center() {
     return new Vec(this.pos.x + this.radiusInner, this.pos.y + this.radiusInner);
@@ -93,13 +99,13 @@ class ActorGenerator {
     let color = randRGBcolor();
     let radius = (SCALE / 2) * randMultiplier(MAX_SIZE_DEVIATION);
     let pos = new Vec(radius, radius);
-    let velocity = Vec.randomVec().multiply(SPEED);
+    let velocity = Vec.randomVec();
     return new Circle(pos, velocity, color, ACTOR_TYPES.CIRCLE, number, radius)
   }
   static generateSquare(number) {
     let color = randRGBcolor();
     let pos = new Vec(1, 1);
-    let velocity = Vec.randomVec().multiply(SPEED);
+    let velocity = Vec.randomVec();
     let side = SCALE * randMultiplier(MAX_SIZE_DEVIATION);
     return new Square(pos, velocity, color, ACTOR_TYPES.SQUARE, number, side)
   }
@@ -134,34 +140,41 @@ class Actors {
       this.actors.push(actor);
     }
   }
+  addRandomActor() {
+    if (halfChance()) {
+      this.addActor(ACTOR_TYPES.CIRCLE);
+    } else {
+      this.addActor(ACTOR_TYPES.SQUARE);
+    }
+  }
   logGeneratedActor(actor) {
     console.log(`Number: ${actor.number}, Type: ${actor.type}, Color: ${actor.color}, Area: ${actor.area.toFixed(1)}`);
   }
   runAutoAddFlow() {
     if (this.actors.length < this.maxSize) {
+      if(Engine.isSafeToAdd(this.actors)) {
 
-      if (this.counter[ACTOR_TYPES.CIRCLE] < this.maxNumOfCircles && this.counter[ACTOR_TYPES.SQUARE] < this.maxNumOfSquares) {
-        if (halfChance()) {
+        if (this.counter[ACTOR_TYPES.CIRCLE] < this.maxNumOfCircles && this.counter[ACTOR_TYPES.SQUARE] < this.maxNumOfSquares) {
+          this.addRandomActor();
+        } else if (this.counter[ACTOR_TYPES.CIRCLE] < this.maxNumOfCircles) {
           this.addActor(ACTOR_TYPES.CIRCLE);
-        } else {
+        } else if (this.counter[ACTOR_TYPES.SQUARE] < this.maxNumOfSquares) {
           this.addActor(ACTOR_TYPES.SQUARE);
         }
 
-      } else if (this.counter[ACTOR_TYPES.CIRCLE] < this.maxNumOfCircles) {
-        this.addActor(ACTOR_TYPES.CIRCLE);
-      } else if (this.counter[ACTOR_TYPES.SQUARE] < this.maxNumOfSquares) {
-        this.addActor(ACTOR_TYPES.SQUARE);
+        setTimeout(() => this.runAutoAddFlow(), this.delay);
+      } else {
+        setTimeout(() => this.runAutoAddFlow(), 100);
       }
-
-      setTimeout(() => this.runAutoAddFlow(), this.delay);
     }
   }
 }
 
 class Engine {
   static updateState(actors, width, height) {
-    Engine.checkAndUpdateIfWallCollision(actors, width, height);
     Engine.checkAndUpdateIfElementsCollide(actors);
+    Engine.checkAndUpdateIfWallCollision(actors, width, height);
+    Engine.makeMove(actors);
   }
   static checkAndUpdateIfWallCollision(actors, width, height) {
     for (let actor of actors) {
@@ -178,8 +191,6 @@ class Engine {
     circle.pos.y - circle.radius + circle.velocity.y < 0) {
       circle.velocity.y = -circle.velocity.y;
     }
-    circle.pos.x += circle.velocity.x;
-    circle.pos.y += circle.velocity.y;
   }
   static wallCollisionSquare(square, width, height) {
     if (square.pos.x + square.side + square.velocity.x > width ||
@@ -190,8 +201,6 @@ class Engine {
     square.pos.y + square.velocity.y < 0) {
       square.velocity.y = - square.velocity.y;
     }
-    square.pos.x += square.velocity.x;
-    square.pos.y += square.velocity.y;
   }
   static checkAndUpdateIfElementsCollide(actors) {
     let collided = new Array(actors.length).fill(false);
@@ -201,22 +210,36 @@ class Engine {
       if (!collided[index] && index !== actors.length - 1) {
         for (let next = index + 1; next < actors.length; next++) {
           //light check for the collision
-          if (Math.abs(curActor.center.x - next.center.x) > maxSafeDistance ||
-          Math.abs(curActor.center.y - next.center.y) > maxSafeDistance) {
+          let nextActor = actors[next];
+          if (Math.abs(curActor.center.x - nextActor.center.x) > maxSafeDistance ||
+          Math.abs(curActor.center.y - nextActor.center.y) > maxSafeDistance) {
           // nothing here
-          } else if (curActor.radius + next.radius > calcDistance(curActor, next)) { //hard check for the collision
+          } else if (curActor.radius + nextActor.radius > calcDistance(curActor, nextActor)) { //hard check for the collision
             collided[index] = true;
             collided[next] = true;
-
+            swapVelocity(curActor, nextActor);
           }
         }
       }
     });
-
+    // console.log(collided);
     function calcDistance(actor1, actor2) {
       return Math.sqrt(((actor1.center.x + actor1.velocity.x) - (actor2.center.x + actor2.velocity.x)) ** 2 +
         ((actor1.center.y + actor1.velocity.y) - (actor2.center.y + actor2.velocity.y)) ** 2)
     }
+    function swapVelocity(actor1, actor2) {
+      [actor1.velocity.x, actor2.velocity.x] = [actor2.velocity.x, actor1.velocity.x];
+      [actor1.velocity.y, actor2.velocity.y] = [actor2.velocity.y, actor1.velocity.y]
+    }
+  }
+  static makeMove(actors) {
+    actors.forEach(actor => {
+      actor.pos.x += actor.velocity.x;
+      actor.pos.y += actor.velocity.y;
+    });
+  }
+  static isSafeToAdd(actors) {
+    return actors.every(actor => actor.pos.x > SCALE && actor.pos.y > SCALE)
   }
 }
 
@@ -227,6 +250,9 @@ class Render {
     this.canvasWidth = this.canvas.width;
     this.canvasHeight = this.canvas.height;
     this.actors = actors.actors;
+  }
+  calcFPS() {
+
   }
   drawActor(actor) {
     this.cx.beginPath();
@@ -250,73 +276,8 @@ class Render {
   }
 }
 
-let actors = new Actors(10, 10, 5000);
+let actors = new Actors(MAX_NUM_OF_CIRCLES, MAX_NUM_OF_SQUARES, GENERATING_DELAY);
 let render = new Render("canvas-view", actors);
 
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("circle");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-actors.addActor("square");
-
+actors.runAutoAddFlow();
 render.renderView();
-
-let arr = [1, 3, 5 ,7];
-
-arr.forEach((elem, index) => {
-  if (elem > 4) {
-    arr[index] = elem * 2;
-    return
-  }
-  if (elem > 2) {
-    arr[index] = elem * 6;
-  }
-});
-
-console.log(arr);
