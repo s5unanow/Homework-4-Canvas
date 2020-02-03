@@ -68,6 +68,6 @@ class Engine {
     });
   }
   static isStartingAreaClear(actors) {
-    return actors.every(actor => actor.pos.x > SCALE && actor.pos.y > SCALE)
+    return actors.every(actor => actor.pos.x > (1.1 + MAX_SIZE_DEVIATION) * SCALE  && actor.pos.y > (1.1 + MAX_SIZE_DEVIATION) * SCALE)
   }
 }
