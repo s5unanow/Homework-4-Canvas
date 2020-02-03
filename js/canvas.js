@@ -6,8 +6,8 @@ const ACTOR_TYPES = {
 };
 const SCALE = 40;
 const MAX_SIZE_DEVIATION = 0.2;
-const MAX_VELOCITY_DEVIATION = 0.3;
-const SPEED = 15;
+const MAX_VELOCITY_DEVIATION = 0.4;
+const SPEED = 5;
 const MAX_NUM_OF_CIRCLES = 10;
 const MAX_NUM_OF_SQUARES = 10;
 const GENERATING_DELAY = 5000; // in ms
@@ -47,10 +47,10 @@ class Vec {
   multiply(multiplier) {
     return new Vec(this.x * multiplier, this.y * multiplier);
   }
-  static randomVec(defaultValue = SPEED) {
-    let x = 2 * randMultiplier(MAX_VELOCITY_DEVIATION);
-    let y =  Math.sqrt(defaultValue - x ** 2);
-    return new Vec(x, y);
+  static randomVec() {
+    let x = 0.9 - MAX_VELOCITY_DEVIATION * Math.random();
+    let y = Math.sqrt(1 - x ** 2);
+    return new Vec(x, y).multiply(SPEED);
   }
 }
 

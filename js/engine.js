@@ -34,7 +34,7 @@ class Engine {
   }
   static checkAndUpdateIfElementsCollide(actors) {
     let collided = new Array(actors.length).fill(false);
-    let maxSafeDistance = SCALE * 2; //may be a problem with high speed; change "2" into SPEED?
+    let maxSafeDistance = SCALE * 2; //may be a problem with high speed; replace "2" with SPEED?
 
     actors.forEach((curActor, index) => {
       if (!collided[index] && index !== actors.length - 1) {
