@@ -9,12 +9,20 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<h1>Homework 4 - Cherevach Alexander</h1>
-<div class="canvas-wrapper">
-  <canvas id="canvas-view" width="650px" height="600px">
-    Canvas does not supported
-  </canvas>
+<div class="project-wrapper">
+  <h1>Homework 4 - Cherevach Alexander</h1>
+  <p class="project-link">Repository is <a href="https://github.com/s5unanow/Homework-4-Canvas" target="_blank">here</a></p>
+  <div class="controls-wrapper">
+    <input type="checkbox" id="showFPS">
+    <label class="label-FPS" for="showFPS">Show FPS<span class="toggle_FPS"></span></label>
+  </div>
+  <div class="canvas-wrapper">
+    <canvas id="canvas-view" width="650px" height="600px">
+      Canvas does not supported
+    </canvas>
+  </div>
 </div>
-<script src="js/canvas.js"></script>
+<script src="js/engine.js" defer ></script>
+<script src="js/canvas.js" defer ></script>
 </body>
 </html>

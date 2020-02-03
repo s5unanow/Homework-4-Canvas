@@ -7,11 +7,10 @@ const ACTOR_TYPES = {
 const SCALE = 40;
 const MAX_SIZE_DEVIATION = 0.2;
 const MAX_VELOCITY_DEVIATION = 0.3;
-const SPEED = 8;
-const MAX_NUM_OF_CIRCLES = 20;
-const MAX_NUM_OF_SQUARES = 20;
-const GENERATING_DELAY = 1000; // in ms
-
+const SPEED = 15;
+const MAX_NUM_OF_CIRCLES = 10;
+const MAX_NUM_OF_SQUARES = 10;
+const GENERATING_DELAY = 5000; // in ms
 
 
 function halfChance() {
@@ -49,8 +48,6 @@ class Vec {
     return new Vec(this.x * multiplier, this.y * multiplier);
   }
   static randomVec(defaultValue = SPEED) {
-    // let x = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
-    // let y = defaultValue * randMultiplier(MAX_VELOCITY_DEVIATION);
     let x = randMultiplier(MAX_VELOCITY_DEVIATION);
     let y =  Math.sqrt(defaultValue - x ** 2);
     return new Vec(x, y);
@@ -170,79 +167,6 @@ class Actors {
   }
 }
 
-class Engine {
-  static updateState(actors, width, height) {
-    Engine.checkAndUpdateIfElementsCollide(actors);
-    Engine.checkAndUpdateIfWallCollision(actors, width, height);
-    Engine.makeMove(actors);
-  }
-  static checkAndUpdateIfWallCollision(actors, width, height) {
-    for (let actor of actors) {
-      if (actor.type === ACTOR_TYPES.CIRCLE) Engine.wallCollisionCircle(actor, width, height);
-      if (actor.type === ACTOR_TYPES.SQUARE) Engine.wallCollisionSquare(actor, width, height);
-    }
-  }
-  static wallCollisionCircle(circle, width, height) {
-    if (circle.pos.x + circle.radius + circle.velocity.x > width ||
-    circle.pos.x - circle.radius + circle.velocity.x < 0) {
-      circle.velocity.x = -circle.velocity.x;
-    }
-    if (circle.pos.y + circle.radius + circle.velocity.y > height ||
-    circle.pos.y - circle.radius + circle.velocity.y < 0) {
-      circle.velocity.y = -circle.velocity.y;
-    }
-  }
-  static wallCollisionSquare(square, width, height) {
-    if (square.pos.x + square.side + square.velocity.x > width ||
-    square.pos.x + square.velocity.x < 0) {
-      square.velocity.x = - square.velocity.x;
-    }
-    if (square.pos.y + square.side + square.velocity.y > height ||
-    square.pos.y + square.velocity.y < 0) {
-      square.velocity.y = - square.velocity.y;
-    }
-  }
-  static checkAndUpdateIfElementsCollide(actors) {
-    let collided = new Array(actors.length).fill(false);
-    let maxSafeDistance = SCALE * 2; //may be a problem with high speed; change "2" into SPEED?
-
-    actors.forEach((curActor, index) => {
-      if (!collided[index] && index !== actors.length - 1) {
-        for (let next = index + 1; next < actors.length; next++) {
-          //light check for the collision
-          let nextActor = actors[next];
-          if (Math.abs(curActor.center.x - nextActor.center.x) > maxSafeDistance ||
-          Math.abs(curActor.center.y - nextActor.center.y) > maxSafeDistance) {
-          // nothing here
-          } else if (curActor.radius + nextActor.radius > calcDistance(curActor, nextActor)) { //hard check for the collision
-            collided[index] = true;
-            collided[next] = true;
-            swapVelocity(curActor, nextActor);
-          }
-        }
-      }
-    });
-    // console.log(collided);
-    function calcDistance(actor1, actor2) {
-      return Math.sqrt(((actor1.center.x + actor1.velocity.x) - (actor2.center.x + actor2.velocity.x)) ** 2 +
-        ((actor1.center.y + actor1.velocity.y) - (actor2.center.y + actor2.velocity.y)) ** 2)
-    }
-    function swapVelocity(actor1, actor2) {
-      [actor1.velocity.x, actor2.velocity.x] = [actor2.velocity.x, actor1.velocity.x];
-      [actor1.velocity.y, actor2.velocity.y] = [actor2.velocity.y, actor1.velocity.y]
-    }
-  }
-  static makeMove(actors) {
-    actors.forEach(actor => {
-      actor.pos.x += actor.velocity.x;
-      actor.pos.y += actor.velocity.y;
-    });
-  }
-  static isSafeToAdd(actors) {
-    return actors.every(actor => actor.pos.x > SCALE && actor.pos.y > SCALE)
-  }
-}
-
 class Render {
   constructor(canvasID, actors) {
     this.canvas = document.getElementById(canvasID);
@@ -250,9 +174,31 @@ class Render {
     this.canvasWidth = this.canvas.width;
     this.canvasHeight = this.canvas.height;
     this.actors = actors.actors;
+    this.fpsON = true;
+    this.FPS = 0;
+    this.shownFPS = 0;
+    this.lastTime = +(new Date());
+    this.lastTimeFPSshown = 0;
   }
-  calcFPS() {
-
+  initialise() {
+    this.cx.font = '20px serif';
+    let checkBoxFPS = document.getElementById("showFPS");
+    this.fpsON = checkBoxFPS.checked;
+    checkBoxFPS.addEventListener("change", () => this.fpsON = !this.fpsON);
+  }
+  calcFPS(now) {
+    this.FPS = Math.round(1000 / (now - this.lastTime));
+    this.lastTime = now;
+  }
+  showFPS() {
+    let now = +(new Date());
+    this.calcFPS(now);
+    if (now - this.lastTimeFPSshown > 1000) {
+      this.shownFPS = this.FPS;
+      this.lastTimeFPSshown = now;
+    }
+    this.cx.fillStyle = 'cornflowerblue';
+    this.cx.fillText(this.shownFPS + " fps", this.canvasWidth - 60, 20);
   }
   drawActor(actor) {
     this.cx.beginPath();
@@ -272,6 +218,7 @@ class Render {
   renderView() {
     Engine.updateState(this.actors, this.canvasWidth, this.canvasHeight);
     this.drawScene();
+    if (this.fpsON) this.showFPS();
     window.requestAnimationFrame(time => this.renderView());
   }
 }
@@ -279,5 +226,8 @@ class Render {
 let actors = new Actors(MAX_NUM_OF_CIRCLES, MAX_NUM_OF_SQUARES, GENERATING_DELAY);
 let render = new Render("canvas-view", actors);
 
+render.initialise();
+
 actors.runAutoAddFlow();
 render.renderView();
+
