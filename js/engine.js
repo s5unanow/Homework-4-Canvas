@@ -10,6 +10,7 @@ class Engine {
     for (let actor of actors) {
       if (actor.type === ACTOR_TYPES.CIRCLE) Engine.wallCollisionCircle(actor, width, height);
       if (actor.type === ACTOR_TYPES.SQUARE) Engine.wallCollisionSquare(actor, width, height);
+      if (actor.type === ACTOR_TYPES.HEART) Engine.wallCollisionCircle(actor, width, height);
     }
   }
   static wallCollisionCircle(circle, width, height) {
