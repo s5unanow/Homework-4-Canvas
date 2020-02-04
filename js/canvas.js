@@ -11,7 +11,7 @@ const MAX_VELOCITY_DEVIATION = 0.4;
 const SPEED = 5;
 const MAX_NUM_OF_CIRCLES = 5;
 const MAX_NUM_OF_SQUARES = 5;
-const MAX_NUM_OF_HEARTS = 10;
+const MAX_NUM_OF_HEARTS = 7;
 const GENERATING_DELAY = 5000; // in ms
 
 
@@ -55,7 +55,7 @@ class Actors {
     this.maxNumOfSquares = numOfSquares;
     this.maxNumOfHearts = numOfHearts;
     this.counter = this.initializeCounter();
-    this.maxSize = numOfCircles + numOfSquares;
+    this.maxSize = numOfCircles + numOfSquares + numOfHearts;
     this.delay = generatingDelay;
   }
   initializeCounter() {
